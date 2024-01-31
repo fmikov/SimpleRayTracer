@@ -74,7 +74,7 @@ T operator*(const vec<DIM, T>& lhs, const vec<DIM, T>& rhs) {
 
 //Addition
 template<size_t DIM, typename T>
-vec<DIM, T> operator+(const vec<DIM, T>& lhs, const vec<DIM, T>& rhs) {
+vec<DIM, T> operator+(vec<DIM, T> lhs, const vec<DIM, T>& rhs) {
     for (size_t i = 0; i < DIM; i++) {
         lhs[i] = lhs[i] + rhs[i];
     }
@@ -83,7 +83,7 @@ vec<DIM, T> operator+(const vec<DIM, T>& lhs, const vec<DIM, T>& rhs) {
 
 //Subtraction
 template<size_t DIM, typename T>
-vec<DIM, T> operator-(const vec<DIM, T>& lhs, const vec<DIM, T>& rhs) {
+vec<DIM, T> operator-(vec<DIM, T> lhs, const vec<DIM, T>& rhs) {
     for (size_t i = 0; i < DIM; i++) {
         lhs[i] = lhs[i] - rhs[i];
     }
@@ -93,10 +93,11 @@ vec<DIM, T> operator-(const vec<DIM, T>& lhs, const vec<DIM, T>& rhs) {
 //Scaling
 template<size_t DIM, typename T, typename U>
 vec<DIM, T> operator*(const vec<DIM, T>& lhs, const U& rhs) {
+    vec<DIM, T> ret;
     for (size_t i = 0; i < DIM; i++) {
-        lhs[i] = lhs[i] * rhs;
+        ret[i] = lhs[i] * rhs;
     }
-    return lhs;
+    return ret;
 }
 
 //Negation
@@ -119,8 +120,9 @@ template <typename T> vec<3, T> cross(vec<3, T> v1, vec<3, T> v2) {
 struct Sphere {
     Vec3f center;
     float radius;
+    Vec3f color;
 
-    Sphere(const Vec3f& c, const float& r) : center(c), radius(r) {}
+    Sphere(const Vec3f& c, const float& r, const Vec3f& color) : center(c), radius(r), color(color) {}
 
     bool ray_intersect(const Vec3f& orig, const Vec3f& dir, float& t0) const {
         Vec3f L = center - orig;
@@ -134,5 +136,11 @@ struct Sphere {
         if (t0 < 0) return false;
         return true;
     }
+};
+
+struct Light {
+    Light(const Vec3f& p, const float& i) : position(p), intensity(i) {}
+    Vec3f position;
+    float intensity;
 };
 
