@@ -105,9 +105,16 @@ Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& sphe
     Vec3f normal = (hit - spheres[ind].center).normalize();
     float diffuse_light_intensity = 0.f;
     float specular_light_intensity = 0.f;
+    
+    //Check for shadows
+    int ind_sh;
+    float t0_sh;
 
     for (Light light : lights) {
         Vec3f to_light = (light.position - hit).normalize();
+        //Check for shadow for current light
+        if (scene_intersect(hit + normal * 1e-3, to_light, spheres, ind_sh, t0_sh)) continue;
+
         diffuse_light_intensity += light.intensity * std::max(0.f, to_light * normal);
 
         Vec3f half_way = (to_light -hit.normalize()).normalize();
