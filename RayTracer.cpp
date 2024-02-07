@@ -14,7 +14,11 @@
 
 const float AMBIENT_INTENSITY = 1.0f;
 
-Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& spheres, const std::vector<Light>& lights);
+Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& spheres, const std::vector<Light>& lights, int depth);
+
+Vec3f reflect(const Vec3f& I, const Vec3f& N) {
+    return I - N * 2.f * (I * N);
+}
 
 
 void render(std::vector<Sphere> spheres, std::vector<Light> lights) {
@@ -35,10 +39,9 @@ void render(std::vector<Sphere> spheres, std::vector<Light> lights) {
             float screen_width = tan(fov / 2.f) * screen_cam_dist;
             float rx = (2*(i + 0.5f) / (float)width -1) * screen_width * aspect;
             float ry = (1 - 2*(j + 0.5f) / (float)height) * screen_width;
-            float rz = -1.; //Camera is looking in negative Z direction
-            Vec3f rd = Vec3f(rx, ry, rz).normalize();
+            Vec3f rd = Vec3f(rx, ry, -1.f).normalize();
 
-            Vec3f color = cast_ray(origin, rd, spheres, lights);
+            Vec3f color = cast_ray(origin, rd, spheres, lights, 0);
             framebuffer[i + j * width] = Vec3uc(
                 int(std::min(1.f, color.x) * 255), 
                 int(std::min(1.f, color.y) * 255), 
@@ -90,12 +93,12 @@ bool scene_intersect(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>
     return true;
 }
 
-Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& spheres, const std::vector<Light>& lights) {
+Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& spheres, const std::vector<Light>& lights, int depth) {
     int ind;
     float t0;
     Vec3f final_color(0., 0., 0.);
 
-    if (!scene_intersect(ro, rd, spheres, ind, t0)) {
+    if (depth > 4 || !scene_intersect(ro, rd, spheres, ind, t0)) {
         return Vec3f(0.2, 0.7, 0.8);
     }
 
@@ -103,6 +106,12 @@ Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& sphe
 
     Vec3f hit = ro + rd * t0;
     Vec3f normal = (hit - spheres[ind].center).normalize();
+
+
+    Vec3f reflect_dir = reflect(hit.normalize(), normal).normalize();
+    Vec3f reflect_orig = reflect_dir * normal < 0 ? hit - normal * 1e-3 : hit + normal * 1e-3; // offset the original point to avoid occlusion by the object itself
+    Vec3f reflect_color = cast_ray(reflect_orig, reflect_dir, spheres, lights, depth + 1);
+
     float diffuse_light_intensity = 0.f;
     float specular_light_intensity = 0.f;
     
@@ -113,7 +122,9 @@ Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& sphe
     for (Light light : lights) {
         Vec3f to_light = (light.position - hit).normalize();
         //Check for shadow for current light
-        if (scene_intersect(hit + normal * 1e-3, to_light, spheres, ind_sh, t0_sh)) continue;
+        Vec3f shadow_orig = hit + normal * 1e-3;
+        float light_distance = (light.position - hit).norm();
+        if (scene_intersect(shadow_orig, to_light, spheres, ind_sh, t0_sh) && (to_light*t0_sh).norm() < light_distance) continue;
 
         diffuse_light_intensity += light.intensity * std::max(0.f, to_light * normal);
 
@@ -123,7 +134,8 @@ Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& sphe
     Vec3f diffuse = mat.color * mat.diffuse * diffuse_light_intensity;
     Vec3f specular = mat.color * mat.specular * specular_light_intensity;
     Vec3f ambient = mat.color * mat.ambient * AMBIENT_INTENSITY;
-    
-    final_color = diffuse + specular;
+    Vec3f reflected = reflect_color * mat.reflectance;
+
+    final_color = diffuse + specular + reflected;
     return final_color;
 }
