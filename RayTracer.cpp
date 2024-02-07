@@ -49,20 +49,18 @@ void render(std::vector<Sphere> spheres, std::vector<Light> lights) {
         }
     }
     stbi_write_bmp("output.bmp", width, height, channels, framebuffer.data());
-
-    std::cout << "Done" << std::endl;
-
 }
 
 int main() {
-    Material      ivory(Vec3f(0.4, 0.4, 0.3));
-    Material red_rubber(Vec3f(0.3, 0.1, 0.1));
+    Material      ivory(Vec3f(0.4, 0.4, 0.3), 0.6, 0.3, 50., 0.1);
+    Material red_rubber(Vec3f(0.3, 0.1, 0.1), 0.9, 0.1, 10., 0.0);
+    Material     mirror(Vec3f(1.0, 1.0, 1.0), 0.0, 10.0, 1425., 0.8);
 
     std::vector<Sphere> spheres;
     spheres.push_back(Sphere(Vec3f(-3, 0, -16), 2, ivory));
-    spheres.push_back(Sphere(Vec3f(-1.0, -1.5, -12), 2, red_rubber));
+    spheres.push_back(Sphere(Vec3f(-1.0, -1.5, -12), 2, mirror));
     spheres.push_back(Sphere(Vec3f(1.5, -0.5, -18), 3, red_rubber));
-    spheres.push_back(Sphere(Vec3f(7, 5, -18), 4, ivory));
+    spheres.push_back(Sphere(Vec3f(7, 5, -18), 4, mirror));
 
 
 
@@ -71,6 +69,8 @@ int main() {
     lights.push_back(Light(Vec3f(30, 50, -25), 1.8));
     lights.push_back(Light(Vec3f(30, 20, 30), 1.7));
     render(spheres, lights);
+
+    std::cout << "Done" << std::endl;
     return 0;
 }
 
@@ -108,7 +108,7 @@ Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& sphe
     Vec3f normal = (hit - spheres[ind].center).normalize();
 
 
-    Vec3f reflect_dir = reflect(hit.normalize(), normal).normalize();
+    Vec3f reflect_dir = reflect(rd, normal).normalize();
     Vec3f reflect_orig = reflect_dir * normal < 0 ? hit - normal * 1e-3 : hit + normal * 1e-3; // offset the original point to avoid occlusion by the object itself
     Vec3f reflect_color = cast_ray(reflect_orig, reflect_dir, spheres, lights, depth + 1);
 
@@ -128,7 +128,7 @@ Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& sphe
 
         diffuse_light_intensity += light.intensity * std::max(0.f, to_light * normal);
 
-        Vec3f half_way = (to_light -hit.normalize()).normalize();
+        Vec3f half_way = (to_light -rd).normalize();
         specular_light_intensity += powf(std::max(0.f, normal * half_way), mat.shininess) * light.intensity;
     }
     Vec3f diffuse = mat.color * mat.diffuse * diffuse_light_intensity;
