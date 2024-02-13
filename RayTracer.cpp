@@ -64,10 +64,9 @@ void fresnel(const Vec3f& I, const Vec3f& N, const float& ior, float& kr)
 void render(std::vector<Sphere> spheres, std::vector<Light> lights) {
     const int width = 1024;
     const int height = 768;
-    const int channels = 3;
     const Vec3f origin = Vec3f(0.0, 0.0, 0.0);
     const float screen_cam_dist = 1.0f;
-    const float fov = 90.f * M_PI / 180.f; //in radians
+    const float fov = 60.f * M_PI / 180.f; //in radians
     const float aspect = width / (float)height;
 
     std::vector<Vec3uc> framebuffer(width * height);
@@ -87,7 +86,7 @@ void render(std::vector<Sphere> spheres, std::vector<Light> lights) {
                 int(std::min(1.f, color.z) * 255));
         }
     }
-    stbi_write_bmp("output.bmp", width, height, channels, framebuffer.data());
+    stbi_write_jpg("output.jpg", width, height, 3, framebuffer.data(), 100);
 }
 
 int main() {
