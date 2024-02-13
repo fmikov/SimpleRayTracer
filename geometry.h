@@ -109,6 +109,11 @@ vec<DIM, T> operator*(const vec<DIM, T>& lhs, const U& rhs) {
     return ret;
 }
 
+template<size_t DIM, typename T, typename U>
+vec<DIM, T> operator*(const U& rhs, const vec<DIM, T>& lhs) {
+    return lhs * rhs;
+}
+
 //Negation
 template<size_t DIM, typename T>
 vec<DIM, T> operator-(const vec<DIM, T>& lhs) {
