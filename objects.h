@@ -10,6 +10,8 @@ struct Material {
         reflectivity(reflectivity), refractivity(refractivity), ior(ior) {}
     Material(const Vec3f& color)
         : color(color), diffuse(0.6f), specular(0.5f), ambient(0.1f), shininess(50.f), reflectivity(0.5f), refractivity(0.5f), ior(1.0f) {}
+    Material() 
+        : color(Vec3f(1.0f, 1.0f, 1.0f)), diffuse(0.9f), specular(0.1f), shininess(10.f), reflectivity(0.f), refractivity(0.f), ior(1.f) {}
     Vec3f color;
     float diffuse;
     float specular;

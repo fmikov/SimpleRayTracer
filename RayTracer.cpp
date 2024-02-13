@@ -115,7 +115,7 @@ int main() {
     return 0;
 }
 
-bool scene_intersect(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& spheres, int& index, float& t0) {
+bool scene_intersect(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& spheres, Material& mat, float& t0, Vec3f& normal) {
     float intersection = std::numeric_limits<float>::max(), closest_intersection = std::numeric_limits<float>::max();
     int ind = -1;
     for (int i = 0; i < spheres.size(); i++) {
@@ -126,41 +126,55 @@ bool scene_intersect(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>
             }
         }
     }
-    if (ind < 0) {
-        return false;
+
+
+    //Check intersection with plane
+    if (fabs(rd.y) > 1e-3) {
+        float dist = -(ro.y + 4) / rd.y; // the checkerboard plane has equation y = -4
+        Vec3f pt = ro + rd * dist;
+        if (dist > 0 && fabs(pt.x) < 10 && pt.z<-10 && pt.z>-30 && dist < closest_intersection) {
+            t0 = dist;
+            normal = Vec3f(0., 1., 0.);
+            mat.color = (int(.5 * pt.x + 1000) + int(.5 * pt.z)) & 1 ? Vec3f(.3, .3, .3) : Vec3f(.3, .2, .1);
+            return true;
+        }
     }
-    index = ind;
+    if (ind < 0) return false;
+    mat = spheres[ind].material;
     t0 = closest_intersection;
+    normal = (ro + rd * t0 - spheres[ind].center).normalize();
+
     return true;
 }
 
 Vec3f cast_ray(const Vec3f& ro, const Vec3f& rd, const std::vector<Sphere>& spheres, const std::vector<Light>& lights, int depth) {
-    int ind;
+    Material mat;
     float t0;
+    Vec3f normal;
     Vec3f final_color(0., 0., 0.);
 
-    if (depth > 4 || !scene_intersect(ro, rd, spheres, ind, t0)) {
+    if (depth > 4 || !scene_intersect(ro, rd, spheres, mat, t0, normal)) {
         return Vec3f(0.2, 0.7, 0.8);
     }
 
-    Material mat = spheres[ind].material;
 
     Vec3f hit = ro + rd * t0;
-    Vec3f normal = (hit - spheres[ind].center).normalize();
 
     float diffuse_light_intensity = 0.f;
     float specular_light_intensity = 0.f;
     
     //Check for shadows
-    int ind_sh;
+    Material mat_sh;
     float t0_sh;
+    Vec3f normal_sh;
+
 
     for (Light light : lights) {
         Vec3f to_light = (light.position - hit).normalize();
         //Check for shadow for current light
         Vec3f shadow_orig = hit + normal * 1e-3;
         float light_distance = (light.position - hit).norm();
-        if (scene_intersect(shadow_orig, to_light, spheres, ind_sh, t0_sh) && (to_light*t0_sh).norm() < light_distance) 
+        if (scene_intersect(shadow_orig, to_light, spheres, mat_sh, t0_sh, normal_sh) && (to_light*t0_sh).norm() < light_distance)
             continue;
 
         diffuse_light_intensity += light.intensity * std::max(0.f, to_light * normal);
